@@ -236,7 +236,7 @@ public class HiveSplitManager
                 for (int i = 0; i < min(partitionColumns.size(), tableColumns.size()); i++) {
                     String tableType = tableColumns.get(i).getType();
                     String partitionType = partitionColumns.get(i).getType();
-                    if (!tableType.equals(partitionType)) {
+                    if (!tableType.equals(partitionType) && !canCoerce(partitionType, tableType)) {
                         throw new PrestoException(HIVE_PARTITION_SCHEMA_MISMATCH, format("" +
                                         "There is a mismatch between the table and partition schemas. " +
                                         "The column '%s' in table '%s' is declared as type '%s', " +
@@ -268,6 +268,21 @@ public class HiveSplitManager
             return results.build();
         });
         return concat(partitionBatches);
+    }
+
+    private static boolean canCoerce(String fromType, String toType)
+    {
+        switch (fromType) {
+            case "tinyint":
+                return toType.equals("smallint") || toType.equals("int") || toType.equals("bigint");
+            case "smallint":
+                return toType.equals("int") || toType.equals("bigint");
+            case "int":
+                return toType.equals("bigint");
+            case "float":
+                return toType.equals("double");
+        }
+        return false;
     }
 
     /**
