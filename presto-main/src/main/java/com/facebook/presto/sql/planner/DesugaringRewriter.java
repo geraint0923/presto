@@ -53,7 +53,7 @@ public class DesugaringRewriter
             value = new Cast(value, TIMESTAMP_WITH_TIME_ZONE.getDisplayName());
         }
 
-        return new FunctionCall(QualifiedName.of("at_timezone"), ImmutableList.of(
+        return new FunctionCall(QualifiedName.of("to_timezone"), ImmutableList.of(
                 value,
                 treeRewriter.rewrite(node.getTimeZone(), context)));
     }
