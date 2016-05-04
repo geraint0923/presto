@@ -17,6 +17,7 @@ import com.facebook.presto.hadoop.HadoopFileStatus;
 import com.facebook.presto.hive.metastore.HiveMetastore;
 import com.facebook.presto.spi.ColumnHandle;
 import com.facebook.presto.spi.ColumnMetadata;
+import com.facebook.presto.spi.ColumnNotFoundException;
 import com.facebook.presto.spi.ConnectorInsertTableHandle;
 import com.facebook.presto.spi.ConnectorNewTableLayout;
 import com.facebook.presto.spi.ConnectorOutputTableHandle;
@@ -475,16 +476,24 @@ public class HiveMetadata
         if (!tableMetadata.isPresent()) {
             throw new TableNotFoundException(hiveTableHandle.getSchemaTableName());
         }
+        if (sourceHandle.isPartitionKey()) {
+            throw new PrestoException(NOT_SUPPORTED, format("Partition key is not allowed to be renamed: %s", sourceHandle.getName()));
+        }
         Table table = tableMetadata.get();
         StorageDescriptor sd = table.getSd();
         ImmutableList.Builder<FieldSchema> columns = ImmutableList.builder();
+        boolean found = false;
         for (FieldSchema fieldSchema : sd.getCols()) {
             if (fieldSchema.getName().equals(sourceHandle.getName())) {
                 columns.add(new FieldSchema(target, fieldSchema.getType(), fieldSchema.getComment()));
+                found = true;
             }
             else {
                 columns.add(fieldSchema);
             }
+        }
+        if (!found) {
+            throw new ColumnNotFoundException(hiveTableHandle.getSchemaTableName(), sourceHandle.getName());
         }
         sd.setCols(columns.build());
         table.setSd(sd);
