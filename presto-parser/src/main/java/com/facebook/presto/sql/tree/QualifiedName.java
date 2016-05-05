@@ -13,12 +13,11 @@
  */
 package com.facebook.presto.sql.tree;
 
-import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -29,13 +28,16 @@ import static java.util.Objects.requireNonNull;
 
 public class QualifiedName
 {
-    private final List<String> parts;
     private final List<String> originalParts;
+    private final List<String> parts;
+    private final int size;
+
+    private Optional<QualifiedName> prefix;
 
     public static QualifiedName of(String first, String... rest)
     {
         requireNonNull(first, "first is null");
-        return new QualifiedName(ImmutableList.copyOf(Lists.asList(first, rest)));
+        return new QualifiedName(Lists.asList(first, rest));
     }
 
     public QualifiedName(String name)
@@ -49,22 +51,45 @@ public class QualifiedName
         checkArgument(!isEmpty(parts), "parts is empty");
         this.parts = ImmutableList.copyOf(transform(parts, part -> part.toLowerCase(ENGLISH)));
         this.originalParts = ImmutableList.copyOf(parts);
+        this.size = this.parts.size();
+        if (this.size == 1) {
+            this.prefix = Optional.empty();
+        }
+        else {
+            this.prefix = Optional.of(new QualifiedName(this.originalParts, this.parts, this.size - 1));
+        }
+    }
+
+    private QualifiedName(List<String> originalParts, List<String> parts, int size)
+    {
+        this.originalParts = originalParts;
+        this.parts = parts;
+        this.size = size;
+        if (size == 1) {
+            this.prefix = Optional.empty();
+        }
+        else {
+            this.prefix = Optional.of(new QualifiedName(originalParts, parts, size - 1));
+        }
     }
 
     public List<String> getParts()
     {
-        return parts;
+        return parts.subList(0, size);
     }
 
     public List<String> getOriginalParts()
     {
-        return originalParts;
+        return originalParts.subList(0, size);
     }
 
     @Override
     public String toString()
     {
-        return Joiner.on('.').join(parts);
+        if (prefix.isPresent()) {
+            return prefix.get() + "." + getSuffix();
+        }
+        return getSuffix();
     }
 
     /**
@@ -73,27 +98,32 @@ public class QualifiedName
      */
     public Optional<QualifiedName> getPrefix()
     {
-        if (parts.size() == 1) {
-            return Optional.empty();
-        }
-
-        return Optional.of(new QualifiedName(parts.subList(0, parts.size() - 1)));
+        return prefix;
     }
 
-    public boolean hasSuffix(QualifiedName suffix)
+    public boolean hasSuffix(QualifiedName name)
     {
-        if (parts.size() < suffix.getParts().size()) {
+        int current = this.size - 1;
+        int other = name.size - 1;
+        if (current < other) {
             return false;
         }
-
-        int start = parts.size() - suffix.getParts().size();
-
-        return parts.subList(start, parts.size()).equals(suffix.getParts());
+        while (this.parts.get(current).equals(name.parts.get(other))) {
+            if (other <= 0) {
+                return true;
+            }
+            if (current <= 0) {
+                return false;
+            }
+            current--;
+            other--;
+        }
+        return false;
     }
 
     public String getSuffix()
     {
-        return Iterables.getLast(parts);
+        return parts.get(size - 1);
     }
 
     @Override
@@ -105,12 +135,13 @@ public class QualifiedName
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        return parts.equals(((QualifiedName) o).parts);
+        QualifiedName obj = (QualifiedName) o;
+        return Objects.equals(prefix, obj.prefix) && Objects.equals(getSuffix(), obj.getSuffix());
     }
 
     @Override
     public int hashCode()
     {
-        return parts.hashCode();
+        return Objects.hash(prefix, getSuffix());
     }
 }

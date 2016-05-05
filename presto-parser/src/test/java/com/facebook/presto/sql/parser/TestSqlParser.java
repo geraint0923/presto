@@ -146,6 +146,23 @@ public class TestSqlParser
     }
 
     @Test
+    public void testQualifiedName()
+    {
+        QualifiedName name = QualifiedName.of("a", "b", "c", "d");
+        QualifiedName sameName = QualifiedName.of("a", "b", "c", "d");
+        QualifiedName goodSuffix1 = QualifiedName.of("b", "c", "d");
+        QualifiedName goodSuffix2 = QualifiedName.of("a", "b", "c", "d");
+        QualifiedName badSuffix1 = QualifiedName.of("a", "c", "d");
+        QualifiedName badSuffix2 = QualifiedName.of("z", "a", "b", "c", "d");
+        assertEquals(name.toString(), "a.b.c.d");
+        assertEquals(name.hasSuffix(goodSuffix1), true);
+        assertEquals(name.hasSuffix(goodSuffix2), true);
+        assertEquals(name.hasSuffix(badSuffix1), false);
+        assertEquals(name.hasSuffix(badSuffix2), false);
+        assertEquals(name, sameName);
+    }
+
+    @Test
     public void testGenericLiteral()
             throws Exception
     {
