@@ -124,6 +124,9 @@ public class SimplifyExpressions
             else if (simplified.equals(FALSE_LITERAL) || simplified instanceof NullLiteral) {
                 return new ValuesNode(idAllocator.getNextId(), node.getOutputSymbols(), ImmutableList.of());
             }
+            if (simplified == node.getPredicate()) {
+                return node;
+            }
             return new FilterNode(node.getId(), source, simplified);
         }
 
@@ -133,6 +136,9 @@ public class SimplifyExpressions
             Expression originalConstraint = null;
             if (node.getOriginalConstraint() != null) {
                 originalConstraint = simplifyExpression(node.getOriginalConstraint());
+            }
+            if (originalConstraint == node.getOriginalConstraint()) {
+                return node;
             }
             return new TableScanNode(
                     node.getId(),

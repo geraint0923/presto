@@ -88,6 +88,9 @@ public class DesugaringOptimizer
         {
             PlanNode source = context.rewrite(node.getSource());
             Expression cleaned = desugar(node.getPredicate());
+            if (cleaned == node.getPredicate()) {
+                return node;
+            }
             return new FilterNode(node.getId(), source, cleaned);
         }
 
@@ -97,6 +100,9 @@ public class DesugaringOptimizer
             Expression originalConstraint = null;
             if (node.getOriginalConstraint() != null) {
                 originalConstraint = desugar(node.getOriginalConstraint());
+            }
+            if (originalConstraint == node.getOriginalConstraint()) {
+                return node;
             }
             return new TableScanNode(
                     node.getId(),
