@@ -472,6 +472,16 @@ public abstract class AstVisitor<R, C>
         return visitNode(node, context);
     }
 
+    protected R visitColumnDefinition(ColumnDefinition node, C context)
+    {
+        return visitTableElement(node, context);
+    }
+
+    protected R visitLikeClause(LikeClause node, C context)
+    {
+        return visitTableElement(node, context);
+    }
+
     protected R visitCreateTable(CreateTable node, C context)
     {
         return visitStatement(node, context);

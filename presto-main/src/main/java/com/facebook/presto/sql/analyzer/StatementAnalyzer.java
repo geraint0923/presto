@@ -50,6 +50,7 @@ import com.facebook.presto.sql.tree.AllColumns;
 import com.facebook.presto.sql.tree.ArrayConstructor;
 import com.facebook.presto.sql.tree.BooleanLiteral;
 import com.facebook.presto.sql.tree.Cast;
+import com.facebook.presto.sql.tree.ColumnDefinition;
 import com.facebook.presto.sql.tree.ComparisonExpression;
 import com.facebook.presto.sql.tree.CreateTable;
 import com.facebook.presto.sql.tree.CreateTableAsSelect;
@@ -518,7 +519,7 @@ class StatementAnalyzer
 
             List<TableElement> columns = connectorTableMetadata.getColumns().stream()
                     .filter(column -> !column.isHidden())
-                    .map(column -> new TableElement(column.getName(), column.getType().getDisplayName()))
+                    .map(column -> new ColumnDefinition(column.getName(), column.getType().getDisplayName()))
                     .collect(toImmutableList());
 
             Map<String, Object> properties = connectorTableMetadata.getProperties();

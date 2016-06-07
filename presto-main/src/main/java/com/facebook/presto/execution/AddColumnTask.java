@@ -23,7 +23,7 @@ import com.facebook.presto.spi.ColumnMetadata;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.sql.analyzer.SemanticException;
 import com.facebook.presto.sql.tree.AddColumn;
-import com.facebook.presto.sql.tree.TableElement;
+import com.facebook.presto.sql.tree.ColumnDefinition;
 import com.facebook.presto.transaction.TransactionManager;
 
 import java.util.Map;
@@ -62,16 +62,16 @@ public class AddColumnTask
 
         Map<String, ColumnHandle> columnHandles = metadata.getColumnHandles(session, tableHandle.get());
 
-        TableElement element = statement.getColumn();
-        Type type = metadata.getType(parseTypeSignature(element.getType()));
+        ColumnDefinition column = statement.getColumn();
+        Type type = metadata.getType(parseTypeSignature(column.getType()));
         if ((type == null) || type.equals(UNKNOWN)) {
-            throw new SemanticException(TYPE_MISMATCH, element, "Unknown type for column '%s' ", element.getName());
+            throw new SemanticException(TYPE_MISMATCH, column, "Unknown type for column '%s' ", column.getName());
         }
-        if (columnHandles.containsKey(element.getName().toLowerCase(ENGLISH))) {
-            throw new SemanticException(COLUMN_ALREADY_EXISTS, statement, "Column '%s' already exists", element.getName());
+        if (columnHandles.containsKey(column.getName().toLowerCase(ENGLISH))) {
+            throw new SemanticException(COLUMN_ALREADY_EXISTS, statement, "Column '%s' already exists", column.getName());
         }
 
-        metadata.addColumn(session, tableHandle.get(), new ColumnMetadata(element.getName(), type));
+        metadata.addColumn(session, tableHandle.get(), new ColumnMetadata(column.getName(), type));
 
         return completedFuture(null);
     }

@@ -30,6 +30,7 @@ import com.facebook.presto.sql.tree.Call;
 import com.facebook.presto.sql.tree.CallArgument;
 import com.facebook.presto.sql.tree.Cast;
 import com.facebook.presto.sql.tree.CoalesceExpression;
+import com.facebook.presto.sql.tree.ColumnDefinition;
 import com.facebook.presto.sql.tree.Commit;
 import com.facebook.presto.sql.tree.ComparisonExpression;
 import com.facebook.presto.sql.tree.CreateTable;
@@ -74,6 +75,7 @@ import com.facebook.presto.sql.tree.JoinCriteria;
 import com.facebook.presto.sql.tree.JoinOn;
 import com.facebook.presto.sql.tree.JoinUsing;
 import com.facebook.presto.sql.tree.LambdaExpression;
+import com.facebook.presto.sql.tree.LikeClause;
 import com.facebook.presto.sql.tree.LikePredicate;
 import com.facebook.presto.sql.tree.LogicalBinaryExpression;
 import com.facebook.presto.sql.tree.LongLiteral;
@@ -252,7 +254,7 @@ class AstBuilder
     @Override
     public Node visitAddColumn(SqlBaseParser.AddColumnContext context)
     {
-        return new AddColumn(getLocation(context), getQualifiedName(context.qualifiedName()), (TableElement) visit(context.tableElement()));
+        return new AddColumn(getLocation(context), getQualifiedName(context.qualifiedName()), (ColumnDefinition) visit(context.columnDefinition()));
     }
 
     @Override
@@ -1202,9 +1204,15 @@ class AstBuilder
     }
 
     @Override
-    public Node visitTableElement(SqlBaseParser.TableElementContext context)
+    public Node visitColumnDefinition(SqlBaseParser.ColumnDefinitionContext context)
     {
-        return new TableElement(getLocation(context), context.identifier().getText(), getType(context.type()));
+        return new ColumnDefinition(getLocation(context), context.identifier().getText(), getType(context.type()));
+    }
+
+    @Override
+    public Node visitLikeClause(SqlBaseParser.LikeClauseContext context)
+    {
+        return new LikeClause(getLocation(context), getQualifiedName(context.qualifiedName()), getLikeOptions(context.likeOption()));
     }
 
     @Override
@@ -1507,6 +1515,32 @@ class AstBuilder
         throw new IllegalArgumentException("Unsupported sign: " + token.getText());
     }
 
+    private static LikeClause.LikeOption.Type getLikeOptionType(Token type)
+    {
+        switch (type.getType()) {
+            case SqlBaseLexer.INCLUDING:
+                return LikeClause.LikeOption.Type.INCLUDING;
+            case SqlBaseLexer.EXCLUDING:
+                return LikeClause.LikeOption.Type.EXCLUDING;
+        }
+
+        throw new IllegalArgumentException("Unsupported LIKE option type: " + type.getText());
+    }
+
+    private static LikeClause.LikeOption.Property getLikeOptionProperty(Token type)
+    {
+        switch (type.getType()) {
+            case SqlBaseLexer.ALL:
+                return LikeClause.LikeOption.Property.ALL;
+            case SqlBaseLexer.PARTITION:
+                return LikeClause.LikeOption.Property.PARTITION;
+            case SqlBaseLexer.BUCKET:
+                return LikeClause.LikeOption.Property.BUCKET;
+        }
+
+        throw new IllegalArgumentException("Unsupported LIKE option property: " + type.getText());
+    }
+
     private static WindowFrame.Type getFrameType(Token type)
     {
         switch (type.getType()) {
@@ -1631,6 +1665,18 @@ class AstBuilder
         }
 
         throw new IllegalArgumentException("Unsupported type specification: " + type.getText());
+    }
+
+    private static Optional<List<LikeClause.LikeOption>> getLikeOptions(List<SqlBaseParser.LikeOptionContext> likeOptions)
+    {
+        if (likeOptions.isEmpty()) {
+            return Optional.empty();
+        }
+        ImmutableList.Builder<LikeClause.LikeOption> builder = ImmutableList.builder();
+        for (SqlBaseParser.LikeOptionContext context : likeOptions) {
+            builder.add(new LikeClause.LikeOption(getLikeOptionType(context.optionType), getLikeOptionProperty(context.optionProperty)));
+        }
+        return Optional.of(builder.build());
     }
 
     private static String typeParameterToString(SqlBaseParser.TypeParameterContext typeParameter)

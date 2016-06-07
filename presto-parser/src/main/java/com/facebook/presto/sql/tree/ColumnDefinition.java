@@ -19,49 +19,43 @@ import java.util.Optional;
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
-public class AddColumn
-        extends Statement
+public final class ColumnDefinition
+        extends TableElement
 {
-    private final QualifiedName name;
-    private final ColumnDefinition column;
+    private final String name;
+    private final String type;
 
-    public AddColumn(QualifiedName name, ColumnDefinition column)
+    public ColumnDefinition(String name, String type)
     {
-        this(Optional.empty(), name, column);
+        this(Optional.empty(), name, type);
     }
 
-    public AddColumn(NodeLocation location, QualifiedName name, ColumnDefinition column)
+    public ColumnDefinition(NodeLocation location, String name, String type)
     {
-        this(Optional.of(location), name, column);
+        this(Optional.of(location), name, type);
     }
 
-    private AddColumn(Optional<NodeLocation> location, QualifiedName name, ColumnDefinition column)
+    private ColumnDefinition(Optional<NodeLocation> location, String name, String type)
     {
         super(location);
-        this.name = requireNonNull(name, "table is null");
-        this.column = requireNonNull(column, "column is null");
+        this.name = requireNonNull(name, "name is null");
+        this.type = requireNonNull(type, "type is null");
     }
 
-    public QualifiedName getName()
+    public String getName()
     {
         return name;
     }
 
-    public ColumnDefinition getColumn()
+    public String getType()
     {
-        return column;
+        return type;
     }
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context)
     {
-        return visitor.visitAddColumn(this, context);
-    }
-
-    @Override
-    public int hashCode()
-    {
-        return Objects.hash(name, column);
+        return visitor.visitColumnDefinition(this, context);
     }
 
     @Override
@@ -70,12 +64,18 @@ public class AddColumn
         if (this == obj) {
             return true;
         }
-        if ((obj == null) || (getClass() != obj.getClass())) {
+        if (obj == null || getClass() != obj.getClass()) {
             return false;
         }
-        AddColumn o = (AddColumn) obj;
-        return Objects.equals(name, o.name) &&
-                Objects.equals(column, o.column);
+        ColumnDefinition o = (ColumnDefinition) obj;
+        return Objects.equals(this.name, o.name) &&
+                Objects.equals(this.type, o.type);
+    }
+
+    @Override
+    public int hashCode()
+    {
+        return Objects.hash(name, type);
     }
 
     @Override
@@ -83,7 +83,7 @@ public class AddColumn
     {
         return toStringHelper(this)
                 .add("name", name)
-                .add("column", column)
+                .add("type", type)
                 .toString();
     }
 }

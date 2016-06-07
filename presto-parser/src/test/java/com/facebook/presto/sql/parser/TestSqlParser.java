@@ -25,6 +25,7 @@ import com.facebook.presto.sql.tree.BooleanLiteral;
 import com.facebook.presto.sql.tree.Call;
 import com.facebook.presto.sql.tree.CallArgument;
 import com.facebook.presto.sql.tree.Cast;
+import com.facebook.presto.sql.tree.ColumnDefinition;
 import com.facebook.presto.sql.tree.Commit;
 import com.facebook.presto.sql.tree.ComparisonExpression;
 import com.facebook.presto.sql.tree.CreateTable;
@@ -59,6 +60,7 @@ import com.facebook.presto.sql.tree.Join;
 import com.facebook.presto.sql.tree.JoinCriteria;
 import com.facebook.presto.sql.tree.JoinOn;
 import com.facebook.presto.sql.tree.LambdaExpression;
+import com.facebook.presto.sql.tree.LikeClause;
 import com.facebook.presto.sql.tree.LogicalBinaryExpression;
 import com.facebook.presto.sql.tree.LongLiteral;
 import com.facebook.presto.sql.tree.NaturalJoin;
@@ -90,7 +92,6 @@ import com.facebook.presto.sql.tree.Statement;
 import com.facebook.presto.sql.tree.StringLiteral;
 import com.facebook.presto.sql.tree.SubscriptExpression;
 import com.facebook.presto.sql.tree.Table;
-import com.facebook.presto.sql.tree.TableElement;
 import com.facebook.presto.sql.tree.TimeLiteral;
 import com.facebook.presto.sql.tree.TimestampLiteral;
 import com.facebook.presto.sql.tree.TransactionAccessMode;
@@ -1036,12 +1037,39 @@ public class TestSqlParser
     {
         assertStatement("CREATE TABLE foo (a VARCHAR, b BIGINT)",
                 new CreateTable(QualifiedName.of("foo"),
-                        ImmutableList.of(new TableElement("a", "VARCHAR"), new TableElement("b", "BIGINT")),
+                        ImmutableList.of(new ColumnDefinition("a", "VARCHAR"), new ColumnDefinition("b", "BIGINT")),
                         false,
                         ImmutableMap.of()));
         assertStatement("CREATE TABLE IF NOT EXISTS bar (c TIMESTAMP)",
                 new CreateTable(QualifiedName.of("bar"),
-                        ImmutableList.of(new TableElement("c", "TIMESTAMP")),
+                        ImmutableList.of(new ColumnDefinition("c", "TIMESTAMP")),
+                        true,
+                        ImmutableMap.of()));
+
+        // with LIKE
+        assertStatement("CREATE TABLE IF NOT EXISTS bar (LIKE like_table)",
+                new CreateTable(QualifiedName.of("bar"),
+                        ImmutableList.of(new LikeClause(QualifiedName.of("like_table"), Optional.empty())),
+                        true,
+                        ImmutableMap.of()));
+        assertStatement("CREATE TABLE IF NOT EXISTS bar (c TIMESTAMP, LIKE like_table)",
+                new CreateTable(QualifiedName.of("bar"),
+                        ImmutableList.of(new ColumnDefinition("c", "TIMESTAMP"), new LikeClause(QualifiedName.of("like_table"), Optional.empty())),
+                        true,
+                        ImmutableMap.of()));
+        assertStatement("CREATE TABLE IF NOT EXISTS bar (c TIMESTAMP, LIKE like_table, d DATE)",
+                new CreateTable(QualifiedName.of("bar"),
+                        ImmutableList.of(new ColumnDefinition("c", "TIMESTAMP"), new LikeClause(QualifiedName.of("like_table"), Optional.empty()), new ColumnDefinition("d", "DATE")),
+                        true,
+                        ImmutableMap.of()));
+        assertStatement("CREATE TABLE IF NOT EXISTS bar (c TIMESTAMP, LIKE like_table INCLUDING ALL INCLUDING PARTITION EXCLUDING BUCKET)",
+                new CreateTable(QualifiedName.of("bar"),
+                        ImmutableList.of(
+                                new ColumnDefinition("c", "TIMESTAMP"),
+                                new LikeClause(QualifiedName.of("like_table"), Optional.of(ImmutableList.of(
+                                        new LikeClause.LikeOption(LikeClause.LikeOption.Type.INCLUDING, LikeClause.LikeOption.Property.ALL),
+                                        new LikeClause.LikeOption(LikeClause.LikeOption.Type.INCLUDING, LikeClause.LikeOption.Property.PARTITION),
+                                        new LikeClause.LikeOption(LikeClause.LikeOption.Type.EXCLUDING, LikeClause.LikeOption.Property.BUCKET))))),
                         true,
                         ImmutableMap.of()));
     }
@@ -1157,7 +1185,7 @@ public class TestSqlParser
     public void testAddColumn()
             throws Exception
     {
-        assertStatement("ALTER TABLE foo.t ADD COLUMN c bigint", new AddColumn(QualifiedName.of("foo", "t"), new TableElement("c", "bigint")));
+        assertStatement("ALTER TABLE foo.t ADD COLUMN c bigint", new AddColumn(QualifiedName.of("foo", "t"), new ColumnDefinition("c", "bigint")));
     }
 
     @Test

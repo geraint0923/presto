@@ -19,6 +19,7 @@ import com.facebook.presto.sql.tree.AllColumns;
 import com.facebook.presto.sql.tree.AstVisitor;
 import com.facebook.presto.sql.tree.Call;
 import com.facebook.presto.sql.tree.CallArgument;
+import com.facebook.presto.sql.tree.ColumnDefinition;
 import com.facebook.presto.sql.tree.Commit;
 import com.facebook.presto.sql.tree.CreateTable;
 import com.facebook.presto.sql.tree.CreateTableAsSelect;
@@ -42,6 +43,7 @@ import com.facebook.presto.sql.tree.Join;
 import com.facebook.presto.sql.tree.JoinCriteria;
 import com.facebook.presto.sql.tree.JoinOn;
 import com.facebook.presto.sql.tree.JoinUsing;
+import com.facebook.presto.sql.tree.LikeClause;
 import com.facebook.presto.sql.tree.NaturalJoin;
 import com.facebook.presto.sql.tree.Node;
 import com.facebook.presto.sql.tree.Prepare;
@@ -711,7 +713,28 @@ public final class SqlFormatter
             builder.append(tableName).append(" (\n");
 
             String columnList = node.getElements().stream()
-                    .map(column -> INDENT + formatName(column.getName()) + " " + column.getType())
+                    .map(element -> {
+                        if (element instanceof ColumnDefinition) {
+                            ColumnDefinition column = (ColumnDefinition) element;
+                            return INDENT + formatName(column.getName()) + " " + column.getType();
+                        }
+                        if (element instanceof LikeClause) {
+                            LikeClause likeClause = (LikeClause) element;
+                            StringBuilder builder = new StringBuilder(INDENT);
+                            builder.append("LIKE ")
+                                    .append(likeClause.getTableName());
+                            if (likeClause.getLikeOptions().isPresent()) {
+                                for (LikeClause.LikeOption option : likeClause.getLikeOptions().get()) {
+                                    builder.append(" ")
+                                            .append(option.getType())
+                                            .append(" ")
+                                            .append(option.getProperty());
+                                }
+                            }
+                            return builder.toString();
+                        }
+                        throw new UnsupportedOperationException("unknown table element: " + element);
+                    })
                     .collect(joining(",\n"));
             builder.append(columnList);
             builder.append("\n").append(")");

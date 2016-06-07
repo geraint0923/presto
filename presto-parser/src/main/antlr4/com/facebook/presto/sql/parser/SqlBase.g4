@@ -43,7 +43,7 @@ statement
     | ALTER TABLE tableName=qualifiedName
         RENAME COLUMN from=identifier TO to=identifier                 #renameColumn
     | ALTER TABLE tableName=qualifiedName
-        ADD COLUMN column=tableElement                                 #addColumn
+        ADD COLUMN column=columnDefinition                             #addColumn
     | CREATE (OR REPLACE)? VIEW qualifiedName AS query                 #createView
     | DROP VIEW (IF EXISTS)? qualifiedName                             #dropView
     | CALL qualifiedName '(' (callArgument (',' callArgument)*)? ')'   #call
@@ -90,7 +90,20 @@ with
     ;
 
 tableElement
+    : columnDefinition
+    | likeClause
+    ;
+
+columnDefinition
     : identifier type
+    ;
+
+likeClause
+    : LIKE qualifiedName (likeOption)*
+    ;
+
+likeOption
+    : optionType=(INCLUDING | EXCLUDING) optionProperty=(BUCKET | PARTITION | ALL)
     ;
 
 tableProperties
@@ -600,6 +613,10 @@ NFD : 'NFD';
 NFC : 'NFC';
 NFKD : 'NFKD';
 NFKC : 'NFKC';
+
+INCLUDING: 'INCLUDING';
+EXCLUDING: 'EXCLUDING';
+BUCKET: 'BUCKET';
 
 IF: 'IF';
 NULLIF: 'NULLIF';
